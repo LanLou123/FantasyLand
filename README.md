@@ -4,6 +4,16 @@
 
 ## Current features:
 - fbm combine worley noise terrain (two octaves of woley in the outter layer and 6 octaves of perlin noise)
+  - different noise comparision:
+  
+  pure worley fbm | pure perlin fbm 
+  ----|---
+  ![](img/pureworley.JPG) | ![](img/pureperlin.JPG) 
+  
+  combine of two:
+  
+  ![](img/wp.JPG)
+
 - worley noise ocean (acheived by compositing multiple layers of worley noise in fbm style based on u_time,
 each of which possess different velocity and direction)
 - remapping of terrain:
