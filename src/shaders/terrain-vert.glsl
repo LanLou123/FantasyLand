@@ -87,6 +87,25 @@ float worley(vec2 n, float s)
 }
 //worly noise
 #define OCTAVES 6
+#define OCTBIO 1
+
+float biofbm (in vec2 st) {
+      // Initial values
+      float value = 0.0;
+      float amplitude = .5;
+      float frequency = 0.;
+      //
+      // Loop of octaves
+      for (int i = 0; i < OCTBIO; i++) {
+          value += amplitude * noise(st);
+          st *= 1.7;
+          amplitude *= .5;
+      }
+      //value = pow(value,2.0/2.0);//pow rmapping
+      //value = exp(value);
+      return value;
+    }
+
 float fbm (in vec2 st) {
     // Initial values
     float value = 0.0;
@@ -105,10 +124,32 @@ float fbm (in vec2 st) {
     //if(value<0.2) value = pow(value,10.0);
 
     //value = exp(value);
-    float mask = 1.3*worley(st,8248.f);
-    value*=mask;value = pow(value,u_powval);//pow rmapping
+
+    float biov = biofbm(st*0.004);
+    float biovm = biofbm((st+vec2(0.2,1.92))*0.0004);
+
+    float deserth = 0.1;
+
+    float normalh = 1.0;
+
+    float mtnh = 2.5;
+
+    float hightmask = 1.0;
+
+
+    value-=pow(biov,1.8);
+
+    value+=pow(biov,0.9);
+
+    float mask = 1.3*worley(st,8248.f) ;
+    value*=mask;
+    value = pow(value,u_powval );//pow rmapping
     return value;
 }
+
+
+
+
 void main()
 {
   fs_Pos = vs_Pos.xyz;

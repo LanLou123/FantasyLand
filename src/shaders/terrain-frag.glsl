@@ -65,7 +65,7 @@ void main()
     float lambert = dot(fs_Nor,lightdir);
     float t = clamp(smoothstep(80.0, 120.0, length(fs_Pos)), 0.0, 1.0); // Distance fog
 
-    float bioval = fbm(vec2((fs_Pos.x+u_PlanePos.x)*0.04,(fs_Pos.z+u_PlanePos.y)*0.04));
+    float bioval = fbm(vec2((fs_Pos.x+u_PlanePos.x)*0.004,(fs_Pos.z+u_PlanePos.y)*0.004));
 
 
     vec3 snow = vec3(1.0,1.0,1.0);
@@ -75,20 +75,27 @@ void main()
     vec3 sand = vec3(255.0/255.0,250.0/255.0,205.0/255.0);
     vec3 deepocean = vec3(0.0,0.1,0.3);
     vec3 desert = vec3(210.0/255.0,180.0/255.0,140.0/255.0);
+    vec3 redland = vec3(0.8,0.1,0.2);
+    vec3 grass = vec3(173.0/255.0,255.0/255.0,47.0/255.0);
 
     vec3 acol = vec3(0.0);
     if(fs_Pos.y<u_WaterEle&&fs_Pos.y>=0.0)
     acol = mix(deepocean,sand,fs_Pos.y/u_WaterEle);
     if(fs_Pos.y>u_WaterEle&&fs_Pos.y<10.0)
     acol = mix(sand,forest,(fs_Pos.y-u_WaterEle)/(10.0-u_WaterEle));
-    else if(fs_Pos.y>=10.0&&fs_Pos.y<=25.0){
+    else if(fs_Pos.y>=10.0&&fs_Pos.y<=45.0){
     acol = mix(forest,rock,(fs_Pos.y - 10.0)/15.0);
     if(fs_Nor.y<0.4)
     acol = rock;
     }
 
-    acol = mix(acol,desert,pow(bioval,0.8));
 
+
+
+
+    if(bioval>0.6) acol =  mix(mud,acol,(bioval-0.6)/0.4);
+
+    if(bioval>0.4&&bioval<0.6) acol = mix(grass,acol,(bioval-0.4)/0.2);
 
     if(fs_Nor.y>0.8&&fs_Pos.y>10.0)
          acol = snow;

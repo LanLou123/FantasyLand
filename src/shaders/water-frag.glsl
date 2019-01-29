@@ -5,6 +5,7 @@ uniform vec2 u_PlanePos; // Our location in the virtual world displayed by the p
 uniform float u_Time;
 uniform vec3 u_EyePos;
 uniform vec3 u_SunDir;
+uniform float u_WaterEle;
 
 in vec3 fs_Pos;
 in vec3 fs_Nor;
@@ -30,7 +31,7 @@ void main()
     float lambert = dot(fs_Nor,lightdir);
     float t = clamp(smoothstep(80.0, 120.0, length(fs_Pos)), 0.0, 1.0); // Distance fog
     vec3 acol = vec3(0.0);
-    acol = lambert*mix(vec3(0.0,0.14,0.3),vec3(0,0.2,0.5),fs_Pos.y/0.3) + vec3(1,1,1)*spec;
+    acol = lambert*mix(vec3(0.0,0.14,0.45),vec3(0,0.35,0.5),fs_Pos.y/0.3) + vec3(1,1,1)*spec;
 
     float fbias = -0.1;
     float fpow = 15.0;
@@ -38,10 +39,10 @@ void main()
 
     float R = max(0.0, min(1.0, fbias + fscale * pow(1.0 + dot(vd, -fs_Nor), fpow)));//emperical fresnel
 
-    float a = mix(0.0,1.0,fs_Pos.y/2.2);
+    float a = mix(0.0,1.0,u_WaterEle-fs_Pos.y*0.4);
     vec3 clearcol = vec3(164.0/255.0, 233.0/255.0, 1.0);
     vec3 fresnel = R*clearcol;
-    vec4 fcol = vec4(acol+fresnel,1.0-a);
+    vec4 fcol = vec4(acol+fresnel,a);
     out_Col = vec4(mix(fcol.xyz, vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), mix(fcol.w,1.0,t));
     //out_Col = vec4(R,R,R,1.0);
 }

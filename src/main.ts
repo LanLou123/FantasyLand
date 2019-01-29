@@ -14,7 +14,7 @@ const controls = {
   tesselations: 5,
     powval : 2,
     sundirx : 0, sundiry : 1, sundirz : 1,
-    waterele : 0.6,
+    waterele : 1,
   'Load Scene': loadScene, // A function pointer, essentially
 };
 
@@ -88,12 +88,13 @@ function main() {
 
   // Add controls to the gui
   const gui = new DAT.GUI();
-  gui.add(controls, 'tesselations', 0, 8).step(1);
+  var terrain = gui.addFolder('Terrain');
+  //gui.add(controls, 'tesselations', 0, 8).step(1);
   gui.add(controls, "powval",0,10).step(0.2);
   gui.add(controls,"sundirx",-1,1).step(0.01);
   gui.add(controls,"sundiry",-1,1).step(0.01);
   gui.add(controls,"sundirz",-1,1).step(0.01);
-  gui.add(controls, "waterele", 0,8).step(0.2);
+  gui.add(controls, "waterele", 0,4).step(0.04);
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
   const gl = <WebGL2RenderingContext> canvas.getContext('webgl2');
@@ -157,20 +158,22 @@ function main() {
     renderer.clear();
     processKeyPresses();
     let sundir : vec3 = vec3.fromValues(controls.sundirx,controls.sundiry,controls.sundirz);
-
+    let winres : vec2 = vec2.fromValues(window.innerWidth, window.innerHeight);
     renderer.render(camera, lambert, [
       plane,
     ],controls.powval,
         timer,
         sundir,
-        controls.waterele);
+        controls.waterele,
+        winres);
 
     renderer.setAlphaBlend();
     renderer.render(camera,waterShader,[water,]
         ,controls.powval,
         timer,
         sundir,
-        controls.waterele);
+        controls.waterele,
+        winres);
 
     renderer.setDepthTest();
 
@@ -180,7 +183,8 @@ function main() {
         controls.powval,
         timer,
         sundir,
-        controls.waterele);
+        controls.waterele,
+        winres);
     stats.end();
     timer++;
     // Tell the browser to call `tick` again whenever it renders a new frame
@@ -194,6 +198,7 @@ function main() {
   }, false);
 
   renderer.setSize(window.innerWidth, window.innerHeight);
+  console.log(window.innerHeight,window.innerWidth);
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
   camera.updateProjectionMatrix();
 

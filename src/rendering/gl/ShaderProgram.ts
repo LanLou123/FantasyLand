@@ -35,6 +35,7 @@ class ShaderProgram {
   unifEyePos : WebGLUniformLocation;
   unifSunDir :WebGLUniformLocation;
   unifWaterEle :WebGLUniformLocation;
+  unifWinRes : WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -59,6 +60,7 @@ class ShaderProgram {
     this.unifEyePos     = gl.getUniformLocation(this.prog,"u_EyePos");
     this.unifSunDir     = gl.getUniformLocation(this.prog,"u_SunDir");
     this.unifWaterEle   = gl.getUniformLocation(this.prog,"u_WaterEle");
+    this.unifWinRes     = gl.getUniformLocation(this.prog,"u_WinRes");
   }
 
   use() {
@@ -93,6 +95,13 @@ class ShaderProgram {
     this.use();
     if (this.unifPlanePos !== -1) {
       gl.uniform2fv(this.unifPlanePos, pos);
+    }
+  }
+
+  setWindRes(res: vec2){
+    this.use();
+    if(this.unifWinRes!==-1){
+      gl.uniform2fv(this.unifWinRes,res);
     }
   }
 
