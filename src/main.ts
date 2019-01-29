@@ -12,23 +12,29 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
   tesselations: 5,
+    powval : 2,
+    sundirx : 0, sundiry : 1, sundirz : 1,
+    waterele : 0.6,
   'Load Scene': loadScene, // A function pointer, essentially
 };
 
 let square: Square;
 let plane : Plane;
+let water : Plane;
 let wPressed: boolean;
 let aPressed: boolean;
 let sPressed: boolean;
 let dPressed: boolean;
 let planePos: vec2;
+let timer: number = 0;
 
 function loadScene() {
   square = new Square(vec3.fromValues(0, 0, 0));
   square.create();
-  plane = new Plane(vec3.fromValues(0,0,0), vec2.fromValues(100,100), 20);
+  plane = new Plane(vec3.fromValues(0,0,0), vec2.fromValues(250,250), 20);
   plane.create();
-
+  water = new Plane(vec3.fromValues(0,0,0),vec2.fromValues(250,250),20);
+  water.create();
   wPressed = false;
   aPressed = false;
   sPressed = false;
@@ -82,7 +88,12 @@ function main() {
 
   // Add controls to the gui
   const gui = new DAT.GUI();
-
+  gui.add(controls, 'tesselations', 0, 8).step(1);
+  gui.add(controls, "powval",0,10).step(0.2);
+  gui.add(controls,"sundirx",-1,1).step(0.01);
+  gui.add(controls,"sundiry",-1,1).step(0.01);
+  gui.add(controls,"sundirz",-1,1).step(0.01);
+  gui.add(controls, "waterele", 0,8).step(0.2);
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
   const gl = <WebGL2RenderingContext> canvas.getContext('webgl2');
@@ -96,7 +107,7 @@ function main() {
   // Initial call to load scene
   loadScene();
 
-  const camera = new Camera(vec3.fromValues(0, 10, -20), vec3.fromValues(0, 0, 0));
+  const camera = new Camera(vec3.fromValues(0, 20, -40), vec3.fromValues(0, 0, 0));
 
   const renderer = new OpenGLRenderer(canvas);
   renderer.setClearColor(164.0 / 255.0, 233.0 / 255.0, 1.0, 1);
@@ -112,7 +123,12 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/flat-frag.glsl')),
   ]);
 
-  function processKeyPresses() {
+  const waterShader = new ShaderProgram([
+      new Shader(gl.VERTEX_SHADER, require('./shaders/water-vert.glsl')),
+      new Shader(gl.FRAGMENT_SHADER, require('./shaders/water-frag.glsl')),
+  ]);
+
+    function processKeyPresses() {
     let velocity: vec2 = vec2.fromValues(0,0);
     if(wPressed) {
       velocity[1] += 1.0;
@@ -129,6 +145,7 @@ function main() {
     let newPos: vec2 = vec2.fromValues(0,0);
     vec2.add(newPos, velocity, planePos);
     lambert.setPlanePos(newPos);
+    waterShader.setPlanePos(newPos);
     planePos = newPos;
   }
 
@@ -139,14 +156,33 @@ function main() {
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     renderer.clear();
     processKeyPresses();
+    let sundir : vec3 = vec3.fromValues(controls.sundirx,controls.sundiry,controls.sundirz);
+
     renderer.render(camera, lambert, [
       plane,
-    ]);
+    ],controls.powval,
+        timer,
+        sundir,
+        controls.waterele);
+
+    renderer.setAlphaBlend();
+    renderer.render(camera,waterShader,[water,]
+        ,controls.powval,
+        timer,
+        sundir,
+        controls.waterele);
+
+    renderer.setDepthTest();
+
     renderer.render(camera, flat, [
       square,
-    ]);
+    ],
+        controls.powval,
+        timer,
+        sundir,
+        controls.waterele);
     stats.end();
-
+    timer++;
     // Tell the browser to call `tick` again whenever it renders a new frame
     requestAnimationFrame(tick);
   }

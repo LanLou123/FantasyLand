@@ -1,4 +1,4 @@
-import {vec2, vec4, mat4} from 'gl-matrix';
+import {vec2, vec4,vec3 , mat4} from 'gl-matrix';
 import Drawable from './Drawable';
 import {gl} from '../../globals';
 
@@ -30,6 +30,11 @@ class ShaderProgram {
   unifViewProj: WebGLUniformLocation;
   unifColor: WebGLUniformLocation;
   unifPlanePos: WebGLUniformLocation;
+  unifPowVal : WebGLUniformLocation;
+  unifTime : WebGLUniformLocation;
+  unifEyePos : WebGLUniformLocation;
+  unifSunDir :WebGLUniformLocation;
+  unifWaterEle :WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -49,6 +54,11 @@ class ShaderProgram {
     this.unifModelInvTr = gl.getUniformLocation(this.prog, "u_ModelInvTr");
     this.unifViewProj   = gl.getUniformLocation(this.prog, "u_ViewProj");
     this.unifPlanePos   = gl.getUniformLocation(this.prog, "u_PlanePos");
+    this.unifPowVal     = gl.getUniformLocation(this.prog,"u_powval");
+    this.unifTime       = gl.getUniformLocation(this.prog,"u_Time");
+    this.unifEyePos     = gl.getUniformLocation(this.prog,"u_EyePos");
+    this.unifSunDir     = gl.getUniformLocation(this.prog,"u_SunDir");
+    this.unifWaterEle   = gl.getUniformLocation(this.prog,"u_WaterEle");
   }
 
   use() {
@@ -86,6 +96,42 @@ class ShaderProgram {
     }
   }
 
+  setWaterEle(ele: number)
+  {
+    this.use();
+    if(this.unifWaterEle!==-1){
+      gl.uniform1f(this.unifWaterEle,ele);
+    }
+  }
+
+  setEyePos(pos: vec3){
+    this.use();
+    if(this.unifEyePos!==-1){
+      gl.uniform3fv(this.unifEyePos,pos);
+    }
+  }
+
+  setSunDir(dir:vec3){
+    this.use();
+    if(this.unifSunDir!==-1){
+      gl.uniform3fv(this.unifSunDir,dir);
+    }
+  }
+
+  setPowVal(powv : number){
+    this.use();
+    if(this.unifPowVal!==-1){
+      gl.uniform1f(this.unifPowVal,powv);
+    }
+  }
+  setShaderTime(time : number)
+  {
+      this.use();
+      if(this.unifTime !== -1)
+      {
+          gl.uniform1f(this.unifTime, time);
+      }
+  }
   draw(d: Drawable) {
     this.use();
 
