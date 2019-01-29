@@ -6,6 +6,8 @@
 each of which possess different velocity and direction)
 - alpha blending based on depth of terrain for ocean
 - terrain color layers based on terrain hight as well as slope angle
+- simple lambert shading for terrain
+- specularity and fresnel effect for ocean surface based on u_time
 
 ## some examples
 
