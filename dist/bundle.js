@@ -5981,7 +5981,7 @@ const controls = {
     tesselations: 5,
     powval: 2,
     sundirx: 0, sundiry: 1, sundirz: 1,
-    waterele: 0.6,
+    waterele: 1,
     'Load Scene': loadScene,
 };
 let square;
@@ -6049,12 +6049,13 @@ function main() {
     document.body.appendChild(stats.domElement);
     // Add controls to the gui
     const gui = new __WEBPACK_IMPORTED_MODULE_2_dat_gui__["GUI"]();
-    gui.add(controls, 'tesselations', 0, 8).step(1);
+    var terrain = gui.addFolder('Terrain');
+    //gui.add(controls, 'tesselations', 0, 8).step(1);
     gui.add(controls, "powval", 0, 10).step(0.2);
     gui.add(controls, "sundirx", -1, 1).step(0.01);
     gui.add(controls, "sundiry", -1, 1).step(0.01);
     gui.add(controls, "sundirz", -1, 1).step(0.01);
-    gui.add(controls, "waterele", 0, 8).step(0.2);
+    gui.add(controls, "waterele", 0, 4).step(0.04);
     // get canvas and webgl context
     const canvas = document.getElementById('canvas');
     const gl = canvas.getContext('webgl2');
@@ -6110,15 +6111,16 @@ function main() {
         renderer.clear();
         processKeyPresses();
         let sundir = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(controls.sundirx, controls.sundiry, controls.sundirz);
+        let winres = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["b" /* vec2 */].fromValues(window.innerWidth, window.innerHeight);
         renderer.render(camera, lambert, [
             plane,
-        ], controls.powval, timer, sundir, controls.waterele);
+        ], controls.powval, timer, sundir, controls.waterele, winres);
         renderer.setAlphaBlend();
-        renderer.render(camera, waterShader, [water,], controls.powval, timer, sundir, controls.waterele);
+        renderer.render(camera, waterShader, [water,], controls.powval, timer, sundir, controls.waterele, winres);
         renderer.setDepthTest();
         renderer.render(camera, flat, [
             square,
-        ], controls.powval, timer, sundir, controls.waterele);
+        ], controls.powval, timer, sundir, controls.waterele, winres);
         stats.end();
         timer++;
         // Tell the browser to call `tick` again whenever it renders a new frame
@@ -6130,6 +6132,7 @@ function main() {
         camera.updateProjectionMatrix();
     }, false);
     renderer.setSize(window.innerWidth, window.innerHeight);
+    console.log(window.innerHeight, window.innerWidth);
     camera.setAspectRatio(window.innerWidth / window.innerHeight);
     camera.updateProjectionMatrix();
     // Start the render loop
@@ -13273,7 +13276,7 @@ class OpenGLRenderer {
     clear() {
         __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].clear(__WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].COLOR_BUFFER_BIT | __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].DEPTH_BUFFER_BIT);
     }
-    render(camera, prog, drawables, powval, timer, sundir, waterele) {
+    render(camera, prog, drawables, powval, timer, sundir, waterele, winres) {
         let model = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].create();
         let viewProj = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].create();
         let color = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec4 */].fromValues(1, 0, 0, 1);
@@ -13286,6 +13289,7 @@ class OpenGLRenderer {
         prog.setEyePos(camera.controls.eye);
         prog.setSunDir(sundir);
         prog.setWaterEle(waterele);
+        prog.setWindRes(winres);
         for (let drawable of drawables) {
             prog.draw(drawable);
         }
@@ -16447,6 +16451,7 @@ class ShaderProgram {
         this.unifEyePos = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_EyePos");
         this.unifSunDir = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_SunDir");
         this.unifWaterEle = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_WaterEle");
+        this.unifWinRes = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_WinRes");
     }
     use() {
         if (activeProgram !== this.prog) {
@@ -16476,6 +16481,12 @@ class ShaderProgram {
         this.use();
         if (this.unifPlanePos !== -1) {
             __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].uniform2fv(this.unifPlanePos, pos);
+        }
+    }
+    setWindRes(res) {
+        this.use();
+        if (this.unifWinRes !== -1) {
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].uniform2fv(this.unifWinRes, res);
         }
     }
     setWaterEle(ele) {
@@ -16534,13 +16545,13 @@ class ShaderProgram {
 /* 69 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\r\n\r\n\r\nuniform mat4 u_Model;\r\nuniform mat4 u_ModelInvTr;\r\nuniform mat4 u_ViewProj;\r\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\r\nuniform float u_powval;\r\n\r\nin vec4 vs_Pos;\r\nin vec4 vs_Nor;\r\nin vec4 vs_Col;\r\n\r\nout vec3 fs_Pos;\r\nout vec3 fs_Nor;\r\nout vec4 fs_Col;\r\n\r\nout float fs_Sine;\r\n\r\nfloat random1( vec2 p , vec2 seed) {\r\n  return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);\r\n}\r\n\r\nfloat random1( vec3 p , vec3 seed) {\r\n  return fract(sin(dot(p + seed, vec3(987.654, 123.456, 531.975))) * 85734.3545);\r\n}\r\n\r\nvec2 random2( vec2 p , vec2 seed) {\r\n  return fract(sin(vec2(dot(p + seed, vec2(311.7, 127.1)), dot(p + seed, vec2(269.5, 183.3)))) * 85734.3545);\r\n}\r\n\r\nfloat random (in vec2 st) {\r\n    return fract(sin(dot(st.xy,\r\n                         vec2(12.9898,78.233)))*\r\n        43758.5453123);\r\n}\r\n\r\n// Based on Morgan McGuire @morgan3d\r\n// https://www.shadertoy.com/view/4dS3Wd\r\nfloat noise (in vec2 st) {\r\n    vec2 i = floor(st);\r\n    vec2 f = fract(st);\r\n\r\n    // Four corners in 2D of a tile\r\n    float a = random(i);\r\n    float b = random(i + vec2(1.0, 0.0));\r\n    float c = random(i + vec2(0.0, 1.0));\r\n    float d = random(i + vec2(1.0, 1.0));\r\n\r\n    vec2 u = f * f * (3.0 - 2.0 * f);\r\n\r\n    return mix(a, b, u.x) +\r\n            (c - a)* u.y * (1.0 - u.x) +\r\n            (d - b) * u.x * u.y;\r\n}\r\n\r\n\r\n\r\n//worly noise\r\nfloat r(float n)\r\n{\r\n\treturn fract(cos(n*89.42)*343.42);\r\n}\r\nvec2 r(vec2 n)\r\n{\r\n\treturn vec2(r(n.x*23.62 - 300.0 + n.y*34.35), r(n.x*45.13 + 256.0 + n.y*38.89));\r\n}\r\nfloat worley(vec2 n, float s)\r\n{\r\n\tn *= 25.f;\r\n\tfloat dis = 20.0;\r\n\tfor (int x = -1; x <= 1; x++)\r\n\t{\r\n\t\tfor (int y = -1; y <= 1; y++)\r\n\t\t{\r\n\t\t\tvec2 p = floor(n / s) + vec2(x, y);\r\n\t\t\tfloat d = length(r(p) + vec2(x, y) - fract(n / s));\r\n\t\t\tif (dis > d)\r\n\t\t\t{\r\n\t\t\t    float rd = random(p);\r\n\t\t\t\tdis = d;\r\n\t\t\t}\r\n\t\t}\r\n\t}\r\n\treturn dis;\r\n\r\n}\r\n//worly noise\r\n#define OCTAVES 6\r\nfloat fbm (in vec2 st) {\r\n    // Initial values\r\n    float value = 0.0;\r\n    float amplitude = .2;\r\n    float frequency = 0.;\r\n    //\r\n    // Loop of octaves\r\n    float pre = worley(st,68.f);\r\n    float large = worley(st*2.0,48.f);\r\n    value += pre/1.2 + large/5.0;\r\n    for (int i = 0; i < OCTAVES; i++) {\r\n        value += amplitude * noise(st);//worley(st,48.f);\r\n        st *= 2.;\r\n        amplitude *= .5;\r\n    }\r\n    //if(value<0.2) value = pow(value,10.0);\r\n\r\n    //value = exp(value);\r\n    float mask = 1.3*worley(st,8248.f);\r\n    value*=mask;value = pow(value,u_powval);//pow rmapping\r\n    return value;\r\n}\r\nvoid main()\r\n{\r\n  fs_Pos = vs_Pos.xyz;\r\n  float hscale = 18.0;\r\n  //fs_Sine = (sin((vs_Pos.x + u_PlanePos.x) * 3.14159 * 0.1) + cos((vs_Pos.z + u_PlanePos.y) * 3.14159 * 0.1));\r\n  vec2 pp = vec2(vs_Pos.x+ u_PlanePos.x,vs_Pos.z+ u_PlanePos.y);\r\n  vec2 ppr = vec2(vs_Pos.x + 1.0f + u_PlanePos.x,vs_Pos.z+ u_PlanePos.y);\r\n  vec2 ppb = vec2(vs_Pos.x+ u_PlanePos.x,vs_Pos.z + 1.0f + u_PlanePos.y);\r\n  float r = fbm(ppr/10.0f);\r\n  float b = fbm(ppb/10.0f);\r\n  fs_Sine = fbm(pp/10.f);\r\n\r\n  vec4 modelposition = vec4(vs_Pos.x, fs_Sine * hscale, vs_Pos.z, 1.0);\r\n\r\n  fs_Pos = vec3(modelposition);\r\n\r\n  vec3 nor = cross(vec3(modelposition)-vec3(vs_Pos.x+ 1.0f,hscale*b,vs_Pos.z),vec3(modelposition)-vec3(vs_Pos.x,hscale*r,vs_Pos.z+ 1.0f));\r\n  fs_Nor = -normalize(nor);\r\n\r\n\r\n\r\n  modelposition = u_Model * modelposition;\r\n  gl_Position = u_ViewProj * modelposition;\r\n}\r\n"
+module.exports = "#version 300 es\r\n\r\n\r\nuniform mat4 u_Model;\r\nuniform mat4 u_ModelInvTr;\r\nuniform mat4 u_ViewProj;\r\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\r\nuniform float u_powval;\r\n\r\nin vec4 vs_Pos;\r\nin vec4 vs_Nor;\r\nin vec4 vs_Col;\r\n\r\nout vec3 fs_Pos;\r\nout vec3 fs_Nor;\r\nout vec4 fs_Col;\r\n\r\nout float fs_Sine;\r\n\r\nfloat random1( vec2 p , vec2 seed) {\r\n  return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);\r\n}\r\n\r\nfloat random1( vec3 p , vec3 seed) {\r\n  return fract(sin(dot(p + seed, vec3(987.654, 123.456, 531.975))) * 85734.3545);\r\n}\r\n\r\nvec2 random2( vec2 p , vec2 seed) {\r\n  return fract(sin(vec2(dot(p + seed, vec2(311.7, 127.1)), dot(p + seed, vec2(269.5, 183.3)))) * 85734.3545);\r\n}\r\n\r\nfloat random (in vec2 st) {\r\n    return fract(sin(dot(st.xy,\r\n                         vec2(12.9898,78.233)))*\r\n        43758.5453123);\r\n}\r\n\r\n// Based on Morgan McGuire @morgan3d\r\n// https://www.shadertoy.com/view/4dS3Wd\r\nfloat noise (in vec2 st) {\r\n    vec2 i = floor(st);\r\n    vec2 f = fract(st);\r\n\r\n    // Four corners in 2D of a tile\r\n    float a = random(i);\r\n    float b = random(i + vec2(1.0, 0.0));\r\n    float c = random(i + vec2(0.0, 1.0));\r\n    float d = random(i + vec2(1.0, 1.0));\r\n\r\n    vec2 u = f * f * (3.0 - 2.0 * f);\r\n\r\n    return mix(a, b, u.x) +\r\n            (c - a)* u.y * (1.0 - u.x) +\r\n            (d - b) * u.x * u.y;\r\n}\r\n\r\n\r\n\r\n//worly noise\r\nfloat r(float n)\r\n{\r\n\treturn fract(cos(n*89.42)*343.42);\r\n}\r\nvec2 r(vec2 n)\r\n{\r\n\treturn vec2(r(n.x*23.62 - 300.0 + n.y*34.35), r(n.x*45.13 + 256.0 + n.y*38.89));\r\n}\r\nfloat worley(vec2 n, float s)\r\n{\r\n\tn *= 25.f;\r\n\tfloat dis = 20.0;\r\n\tfor (int x = -1; x <= 1; x++)\r\n\t{\r\n\t\tfor (int y = -1; y <= 1; y++)\r\n\t\t{\r\n\t\t\tvec2 p = floor(n / s) + vec2(x, y);\r\n\t\t\tfloat d = length(r(p) + vec2(x, y) - fract(n / s));\r\n\t\t\tif (dis > d)\r\n\t\t\t{\r\n\t\t\t    float rd = random(p);\r\n\t\t\t\tdis = d;\r\n\t\t\t}\r\n\t\t}\r\n\t}\r\n\treturn dis;\r\n\r\n}\r\n//worly noise\r\n#define OCTAVES 6\r\n#define OCTBIO 1\r\n\r\nfloat biofbm (in vec2 st) {\r\n      // Initial values\r\n      float value = 0.0;\r\n      float amplitude = .5;\r\n      float frequency = 0.;\r\n      //\r\n      // Loop of octaves\r\n      for (int i = 0; i < OCTBIO; i++) {\r\n          value += amplitude * noise(st);\r\n          st *= 1.7;\r\n          amplitude *= .5;\r\n      }\r\n      //value = pow(value,2.0/2.0);//pow rmapping\r\n      //value = exp(value);\r\n      return value;\r\n    }\r\n\r\nfloat fbm (in vec2 st) {\r\n    // Initial values\r\n    float value = 0.0;\r\n    float amplitude = .2;\r\n    float frequency = 0.;\r\n    //\r\n    // Loop of octaves\r\n    float pre = worley(st,68.f);\r\n    float large = worley(st*2.0,48.f);\r\n    value += pre/1.2 + large/5.0;\r\n    for (int i = 0; i < OCTAVES; i++) {\r\n        value += amplitude * noise(st);//worley(st,48.f);\r\n        st *= 2.;\r\n        amplitude *= .5;\r\n    }\r\n    //if(value<0.2) value = pow(value,10.0);\r\n\r\n    //value = exp(value);\r\n\r\n    float biov = biofbm(st*0.004);\r\n    float biovm = biofbm((st+vec2(0.2,1.92))*0.0004);\r\n\r\n    float deserth = 0.1;\r\n\r\n    float normalh = 1.0;\r\n\r\n    float mtnh = 2.5;\r\n\r\n    float hightmask = 1.0;\r\n\r\n\r\n    value-=pow(biov,1.8);\r\n\r\n    value+=pow(biov,0.9);\r\n\r\n    float mask = 1.3*worley(st,8248.f) ;\r\n    value*=mask;\r\n    value = pow(value,u_powval );//pow rmapping\r\n    return value;\r\n}\r\n\r\n\r\n\r\n\r\nvoid main()\r\n{\r\n  fs_Pos = vs_Pos.xyz;\r\n  float hscale = 18.0;\r\n  //fs_Sine = (sin((vs_Pos.x + u_PlanePos.x) * 3.14159 * 0.1) + cos((vs_Pos.z + u_PlanePos.y) * 3.14159 * 0.1));\r\n  vec2 pp = vec2(vs_Pos.x+ u_PlanePos.x,vs_Pos.z+ u_PlanePos.y);\r\n  vec2 ppr = vec2(vs_Pos.x + 1.0f + u_PlanePos.x,vs_Pos.z+ u_PlanePos.y);\r\n  vec2 ppb = vec2(vs_Pos.x+ u_PlanePos.x,vs_Pos.z + 1.0f + u_PlanePos.y);\r\n  float r = fbm(ppr/10.0f);\r\n  float b = fbm(ppb/10.0f);\r\n  fs_Sine = fbm(pp/10.f);\r\n\r\n  vec4 modelposition = vec4(vs_Pos.x, fs_Sine * hscale, vs_Pos.z, 1.0);\r\n\r\n  fs_Pos = vec3(modelposition);\r\n\r\n  vec3 nor = cross(vec3(modelposition)-vec3(vs_Pos.x+ 1.0f,hscale*b,vs_Pos.z),vec3(modelposition)-vec3(vs_Pos.x,hscale*r,vs_Pos.z+ 1.0f));\r\n  fs_Nor = -normalize(nor);\r\n\r\n\r\n\r\n  modelposition = u_Model * modelposition;\r\n  gl_Position = u_ViewProj * modelposition;\r\n}\r\n"
 
 /***/ }),
 /* 70 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\r\nuniform vec3 u_SunDir;\r\nuniform float u_WaterEle;\r\n\r\nin vec3 fs_Pos;\r\nin vec3 fs_Nor;\r\nin vec4 fs_Col;\r\n\r\nin float fs_Sine;\r\n\r\nout vec4 out_Col; // This is the final output color that you will see on your\r\n                  // screen for the pixel that is currently being processed.\r\n\r\n\r\n//fbm================================================\r\nfloat random (in vec2 st) {\r\n    return fract(sin(dot(st.xy,\r\n                         vec2(12.9898,78.233)))*\r\n        43758.5453123);\r\n}\r\n\r\n// Based on Morgan McGuire @morgan3d\r\n// https://www.shadertoy.com/view/4dS3Wd\r\nfloat noise (in vec2 st) {\r\n    vec2 i = floor(st);\r\n    vec2 f = fract(st);\r\n\r\n    // Four corners in 2D of a tile\r\n    float a = random(i);\r\n    float b = random(i + vec2(1.0, 0.0));\r\n    float c = random(i + vec2(0.0, 1.0));\r\n    float d = random(i + vec2(1.0, 1.0));\r\n\r\n    vec2 u = f * f * (3.0 - 2.0 * f);\r\n\r\n    return mix(a, b, u.x) +\r\n            (c - a)* u.y * (1.0 - u.x) +\r\n            (d - b) * u.x * u.y;\r\n}\r\n\r\n#define OCTAVES 10\r\nfloat fbm (in vec2 st) {\r\n    // Initial values\r\n    float value = 0.0;\r\n    float amplitude = .5;\r\n    float frequency = 0.;\r\n    //\r\n    // Loop of octaves\r\n    for (int i = 0; i < OCTAVES; i++) {\r\n        value += amplitude * noise(st);\r\n        st *= 1.7;\r\n        amplitude *= .5;\r\n    }\r\n    value = pow(value,2.0/2.0);//pow rmapping\r\n    //value = exp(value);\r\n    return value;\r\n}\r\n\r\nvoid main()\r\n{\r\n    vec3 lightdir = normalize(u_SunDir);\r\n    float lambert = dot(fs_Nor,lightdir);\r\n    float t = clamp(smoothstep(80.0, 120.0, length(fs_Pos)), 0.0, 1.0); // Distance fog\r\n\r\n    float bioval = fbm(vec2((fs_Pos.x+u_PlanePos.x)*0.04,(fs_Pos.z+u_PlanePos.y)*0.04));\r\n\r\n\r\n    vec3 snow = vec3(1.0,1.0,1.0);\r\n    vec3 rock = vec3(112.0/255.0,128.0/255.0,144.0/255.0);\r\n    vec3 mud = vec3(244.0/255.0,164.0/255.0,96.0/255.0);\r\n    vec3 forest = vec3(0.0,0.54,0.0);\r\n    vec3 sand = vec3(255.0/255.0,250.0/255.0,205.0/255.0);\r\n    vec3 deepocean = vec3(0.0,0.1,0.3);\r\n    vec3 desert = vec3(210.0/255.0,180.0/255.0,140.0/255.0);\r\n\r\n    vec3 acol = vec3(0.0);\r\n    if(fs_Pos.y<u_WaterEle&&fs_Pos.y>=0.0)\r\n    acol = mix(deepocean,sand,fs_Pos.y/u_WaterEle);\r\n    if(fs_Pos.y>u_WaterEle&&fs_Pos.y<10.0)\r\n    acol = mix(sand,forest,(fs_Pos.y-u_WaterEle)/(10.0-u_WaterEle));\r\n    else if(fs_Pos.y>=10.0&&fs_Pos.y<=25.0){\r\n    acol = mix(forest,rock,(fs_Pos.y - 10.0)/15.0);\r\n    if(fs_Nor.y<0.4)\r\n    acol = rock;\r\n    }\r\n\r\n    acol = mix(acol,desert,pow(bioval,0.8));\r\n\r\n\r\n    if(fs_Nor.y>0.8&&fs_Pos.y>10.0)\r\n         acol = snow;\r\n\r\n    vec3 col1 = lambert*acol;\r\n    //col1 = vec3(bioval,bioval,bioval);\r\n    //out_Col = vec4(mix(vec3((fs_Sine)), vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), 1.0);\r\n\r\n    out_Col = vec4(mix(col1, vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), 1.0);\r\n\r\n    //out_Col = vec4(col1,1);\r\n}\r\n"
+module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\r\nuniform vec3 u_SunDir;\r\nuniform float u_WaterEle;\r\n\r\nin vec3 fs_Pos;\r\nin vec3 fs_Nor;\r\nin vec4 fs_Col;\r\n\r\nin float fs_Sine;\r\n\r\nout vec4 out_Col; // This is the final output color that you will see on your\r\n                  // screen for the pixel that is currently being processed.\r\n\r\n\r\n//fbm================================================\r\nfloat random (in vec2 st) {\r\n    return fract(sin(dot(st.xy,\r\n                         vec2(12.9898,78.233)))*\r\n        43758.5453123);\r\n}\r\n\r\n// Based on Morgan McGuire @morgan3d\r\n// https://www.shadertoy.com/view/4dS3Wd\r\nfloat noise (in vec2 st) {\r\n    vec2 i = floor(st);\r\n    vec2 f = fract(st);\r\n\r\n    // Four corners in 2D of a tile\r\n    float a = random(i);\r\n    float b = random(i + vec2(1.0, 0.0));\r\n    float c = random(i + vec2(0.0, 1.0));\r\n    float d = random(i + vec2(1.0, 1.0));\r\n\r\n    vec2 u = f * f * (3.0 - 2.0 * f);\r\n\r\n    return mix(a, b, u.x) +\r\n            (c - a)* u.y * (1.0 - u.x) +\r\n            (d - b) * u.x * u.y;\r\n}\r\n\r\n#define OCTAVES 10\r\nfloat fbm (in vec2 st) {\r\n    // Initial values\r\n    float value = 0.0;\r\n    float amplitude = .5;\r\n    float frequency = 0.;\r\n    //\r\n    // Loop of octaves\r\n    for (int i = 0; i < OCTAVES; i++) {\r\n        value += amplitude * noise(st);\r\n        st *= 1.7;\r\n        amplitude *= .5;\r\n    }\r\n    value = pow(value,2.0/2.0);//pow rmapping\r\n    //value = exp(value);\r\n    return value;\r\n}\r\n\r\nvoid main()\r\n{\r\n    vec3 lightdir = normalize(u_SunDir);\r\n    float lambert = dot(fs_Nor,lightdir);\r\n    float t = clamp(smoothstep(80.0, 120.0, length(fs_Pos)), 0.0, 1.0); // Distance fog\r\n\r\n    float bioval = fbm(vec2((fs_Pos.x+u_PlanePos.x)*0.004,(fs_Pos.z+u_PlanePos.y)*0.004));\r\n\r\n\r\n    vec3 snow = vec3(1.0,1.0,1.0);\r\n    vec3 rock = vec3(112.0/255.0,128.0/255.0,144.0/255.0);\r\n    vec3 mud = vec3(244.0/255.0,164.0/255.0,96.0/255.0);\r\n    vec3 forest = vec3(0.0,0.54,0.0);\r\n    vec3 sand = vec3(255.0/255.0,250.0/255.0,205.0/255.0);\r\n    vec3 deepocean = vec3(0.0,0.1,0.3);\r\n    vec3 desert = vec3(210.0/255.0,180.0/255.0,140.0/255.0);\r\n    vec3 redland = vec3(0.8,0.1,0.2);\r\n    vec3 grass = vec3(173.0/255.0,255.0/255.0,47.0/255.0);\r\n\r\n    vec3 acol = vec3(0.0);\r\n    if(fs_Pos.y<u_WaterEle&&fs_Pos.y>=0.0)\r\n    acol = mix(deepocean,sand,fs_Pos.y/u_WaterEle);\r\n    if(fs_Pos.y>u_WaterEle&&fs_Pos.y<10.0)\r\n    acol = mix(sand,forest,(fs_Pos.y-u_WaterEle)/(10.0-u_WaterEle));\r\n    else if(fs_Pos.y>=10.0&&fs_Pos.y<=45.0){\r\n    acol = mix(forest,rock,(fs_Pos.y - 10.0)/15.0);\r\n    if(fs_Nor.y<0.4)\r\n    acol = rock;\r\n    }\r\n\r\n\r\n\r\n\r\n\r\n    if(bioval>0.6) acol =  mix(mud,acol,(bioval-0.6)/0.4);\r\n\r\n    if(bioval>0.4&&bioval<0.6) acol = mix(grass,acol,(bioval-0.4)/0.2);\r\n\r\n    if(fs_Nor.y>0.8&&fs_Pos.y>10.0)\r\n         acol = snow;\r\n\r\n    vec3 col1 = lambert*acol;\r\n    //col1 = vec3(bioval,bioval,bioval);\r\n    //out_Col = vec4(mix(vec3((fs_Sine)), vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), 1.0);\r\n\r\n    out_Col = vec4(mix(col1, vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), 1.0);\r\n\r\n    //out_Col = vec4(col1,1);\r\n}\r\n"
 
 /***/ }),
 /* 71 */
@@ -16552,7 +16563,7 @@ module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\n// The vertex
 /* 72 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\n// The fragment shader used to render the background of the scene\r\n// Modify this to make your background more interesting\r\n\r\nout vec4 out_Col;\r\n\r\nvoid main() {\r\n  out_Col = vec4(164.0 / 255.0, 233.0 / 255.0, 1.0, 1.0);\r\n}\r\n"
+module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\n\r\nuniform vec3 u_SunDir;\r\nuniform vec3 u_EyePos;\r\nuniform vec2 u_WinRes;\r\n// The fragment shader used to render the background of the scene\r\n// Modify this to make your background more interesting\r\n\r\nout vec4 out_Col;\r\n\r\nvoid main() {\r\n\r\n  vec2 uv = gl_FragCoord.xy/u_WinRes.xy;\r\n      uv = uv * 2.0 - 1.0;\r\n      uv.x *= u_WinRes.x / u_WinRes.y;\r\n      vec3 rayDir = normalize(vec3(uv, 1.0 - dot(uv,uv) * 0.3));\r\n      vec3 normcol = vec3(164.0 / 255.0, 233.0 / 255.0, 1.0);\r\n      vec2 x=gl_FragCoord.xy;\r\n\t  vec3 a=vec3(max((fract(dot(sin(x),x))-.99)*90.,.0));\r\n      vec3 sun = mix(normcol,vec3(1.0,1.0,1.0),dot(-rayDir,u_SunDir));\r\n\r\n  out_Col = vec4(sun, 1.0);\r\n}\r\n"
 
 /***/ }),
 /* 73 */
@@ -16564,7 +16575,7 @@ module.exports = "#version 300 es\r\n\r\n\r\nuniform mat4 u_Model;\r\nuniform ma
 /* 74 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\r\nuniform float u_Time;\r\nuniform vec3 u_EyePos;\r\nuniform vec3 u_SunDir;\r\n\r\nin vec3 fs_Pos;\r\nin vec3 fs_Nor;\r\nin vec4 fs_Col;\r\n\r\nin float fs_Sine;\r\n\r\nout vec4 out_Col; // This is the final output color that you will see on your\r\n                  // screen for the pixel that is currently being processed.\r\n\r\nfloat bias(float b, float t)\r\n{\r\n    return pow(t,log(b)/log(0.5f));\r\n}\r\n\r\nvoid main()\r\n{\r\n\r\n    vec3 vd = normalize(-fs_Pos+u_EyePos);\r\n    vec3 lightdir = normalize(u_SunDir);\r\n    vec3 halfwaydir =normalize(lightdir+ vd);\r\n    float spec = pow(max(0.0,dot(halfwaydir,normalize(fs_Nor))),1600.f);\r\n    float lambert = dot(fs_Nor,lightdir);\r\n    float t = clamp(smoothstep(80.0, 120.0, length(fs_Pos)), 0.0, 1.0); // Distance fog\r\n    vec3 acol = vec3(0.0);\r\n    acol = lambert*mix(vec3(0.0,0.14,0.3),vec3(0,0.2,0.5),fs_Pos.y/0.3) + vec3(1,1,1)*spec;\r\n\r\n    float fbias = -0.1;\r\n    float fpow = 15.0;\r\n    float fscale = 1.0;\r\n\r\n    float R = max(0.0, min(1.0, fbias + fscale * pow(1.0 + dot(vd, -fs_Nor), fpow)));//emperical fresnel\r\n\r\n    float a = mix(0.0,1.0,fs_Pos.y/2.2);\r\n    vec3 clearcol = vec3(164.0/255.0, 233.0/255.0, 1.0);\r\n    vec3 fresnel = R*clearcol;\r\n    vec4 fcol = vec4(acol+fresnel,1.0-a);\r\n    out_Col = vec4(mix(fcol.xyz, vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), mix(fcol.w,1.0,t));\r\n    //out_Col = vec4(R,R,R,1.0);\r\n}\r\n"
+module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\r\nuniform float u_Time;\r\nuniform vec3 u_EyePos;\r\nuniform vec3 u_SunDir;\r\nuniform float u_WaterEle;\r\n\r\nin vec3 fs_Pos;\r\nin vec3 fs_Nor;\r\nin vec4 fs_Col;\r\n\r\nin float fs_Sine;\r\n\r\nout vec4 out_Col; // This is the final output color that you will see on your\r\n                  // screen for the pixel that is currently being processed.\r\n\r\nfloat bias(float b, float t)\r\n{\r\n    return pow(t,log(b)/log(0.5f));\r\n}\r\n\r\nvoid main()\r\n{\r\n\r\n    vec3 vd = normalize(-fs_Pos+u_EyePos);\r\n    vec3 lightdir = normalize(u_SunDir);\r\n    vec3 halfwaydir =normalize(lightdir+ vd);\r\n    float spec = pow(max(0.0,dot(halfwaydir,normalize(fs_Nor))),1600.f);\r\n    float lambert = dot(fs_Nor,lightdir);\r\n    float t = clamp(smoothstep(80.0, 120.0, length(fs_Pos)), 0.0, 1.0); // Distance fog\r\n    vec3 acol = vec3(0.0);\r\n    acol = lambert*mix(vec3(0.0,0.14,0.45),vec3(0,0.35,0.5),fs_Pos.y/0.3) + vec3(1,1,1)*spec;\r\n\r\n    float fbias = -0.1;\r\n    float fpow = 15.0;\r\n    float fscale = 1.0;\r\n\r\n    float R = max(0.0, min(1.0, fbias + fscale * pow(1.0 + dot(vd, -fs_Nor), fpow)));//emperical fresnel\r\n\r\n    float a = mix(0.0,1.0,u_WaterEle-fs_Pos.y*0.4);\r\n    vec3 clearcol = vec3(164.0/255.0, 233.0/255.0, 1.0);\r\n    vec3 fresnel = R*clearcol;\r\n    vec4 fcol = vec4(acol+fresnel,a);\r\n    out_Col = vec4(mix(fcol.xyz, vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), mix(fcol.w,1.0,t));\r\n    //out_Col = vec4(R,R,R,1.0);\r\n}\r\n"
 
 /***/ })
 /******/ ]);
