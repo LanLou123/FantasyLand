@@ -48,9 +48,11 @@ from top to bottom, they are:
 - sundirx,y,z : three direction component for sun directions
 - waterele : water elevation
 - clouddens : coverage of clouds
+- use W,A,S,D keys to move across the mountains and ocean
+- use RMB to rotate camera, LMB to translate camera, MMB to zoom in and out..
 
 
-## some examples
+## some other examples
 
 ![](img/aaa.gif)
 ![](img/dd.JPG)
