@@ -15,12 +15,14 @@ const controls = {
     powval : 2,
     sundirx : 0, sundiry : 1, sundirz : 1,
     waterele : 1,
+    clouddens  : 0.4,
   'Load Scene': loadScene, // A function pointer, essentially
 };
 
 let square: Square;
 let plane : Plane;
 let water : Plane;
+let cloud: Plane;
 let wPressed: boolean;
 let aPressed: boolean;
 let sPressed: boolean;
@@ -35,6 +37,8 @@ function loadScene() {
   plane.create();
   water = new Plane(vec3.fromValues(0,0,0),vec2.fromValues(250,250),20);
   water.create();
+  cloud = new Plane(vec3.fromValues(0,0,0),vec2.fromValues(250,250),20);
+  cloud.create();
   wPressed = false;
   aPressed = false;
   sPressed = false;
@@ -90,11 +94,12 @@ function main() {
   const gui = new DAT.GUI();
   var terrain = gui.addFolder('Terrain');
   //gui.add(controls, 'tesselations', 0, 8).step(1);
-  gui.add(controls, "powval",0,10).step(0.2);
+  gui.add(controls, "powval",0,10).step(0.01);
   gui.add(controls,"sundirx",-1,1).step(0.01);
   gui.add(controls,"sundiry",-1,1).step(0.01);
   gui.add(controls,"sundirz",-1,1).step(0.01);
   gui.add(controls, "waterele", 0,4).step(0.04);
+  gui.add(controls,"clouddens", 0,1).step(0.01);
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
   const gl = <WebGL2RenderingContext> canvas.getContext('webgl2');
@@ -129,6 +134,11 @@ function main() {
       new Shader(gl.FRAGMENT_SHADER, require('./shaders/water-frag.glsl')),
   ]);
 
+  const cloudShader = new ShaderProgram(   [
+      new Shader(gl.VERTEX_SHADER, require('./shaders/cloud-vert.glsl')),
+      new Shader(gl.FRAGMENT_SHADER, require('./shaders/cloud-frag.glsl')),
+  ]);
+
     function processKeyPresses() {
     let velocity: vec2 = vec2.fromValues(0,0);
     if(wPressed) {
@@ -147,6 +157,7 @@ function main() {
     vec2.add(newPos, velocity, planePos);
     lambert.setPlanePos(newPos);
     waterShader.setPlanePos(newPos);
+    cloudShader.setPlanePos(newPos);
     planePos = newPos;
   }
 
@@ -165,7 +176,8 @@ function main() {
         timer,
         sundir,
         controls.waterele,
-        winres);
+        winres,
+        controls.clouddens);
 
     renderer.setAlphaBlend();
     renderer.render(camera,waterShader,[water,]
@@ -173,7 +185,16 @@ function main() {
         timer,
         sundir,
         controls.waterele,
-        winres);
+        winres,
+        controls.clouddens);
+
+    renderer.render(camera,cloudShader,[cloud,]
+        ,controls.powval,
+        timer,
+        sundir,
+        controls.waterele,
+        winres,
+        controls.clouddens);
 
     renderer.setDepthTest();
 
@@ -184,7 +205,8 @@ function main() {
         timer,
         sundir,
         controls.waterele,
-        winres);
+        winres,
+        controls.clouddens);
     stats.end();
     timer++;
     // Tell the browser to call `tick` again whenever it renders a new frame

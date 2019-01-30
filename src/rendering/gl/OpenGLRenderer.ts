@@ -39,7 +39,8 @@ class OpenGLRenderer {
          timer : number,
          sundir:vec3,
          waterele:number,
-         winres : vec2
+         winres : vec2,
+         dens : number
   ) {
 
 
@@ -57,6 +58,7 @@ class OpenGLRenderer {
     prog.setSunDir(sundir);
     prog.setWaterEle(waterele);
     prog.setWindRes(winres);
+    prog.setCloudDens(dens);
 
     for (let drawable of drawables) {
       prog.draw(drawable);

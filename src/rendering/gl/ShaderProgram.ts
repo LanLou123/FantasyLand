@@ -36,6 +36,7 @@ class ShaderProgram {
   unifSunDir :WebGLUniformLocation;
   unifWaterEle :WebGLUniformLocation;
   unifWinRes : WebGLUniformLocation;
+  unifCloudDens: WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -61,6 +62,7 @@ class ShaderProgram {
     this.unifSunDir     = gl.getUniformLocation(this.prog,"u_SunDir");
     this.unifWaterEle   = gl.getUniformLocation(this.prog,"u_WaterEle");
     this.unifWinRes     = gl.getUniformLocation(this.prog,"u_WinRes");
+    this.unifCloudDens  = gl.getUniformLocation(this.prog,"u_CloudDens");
   }
 
   use() {
@@ -95,6 +97,13 @@ class ShaderProgram {
     this.use();
     if (this.unifPlanePos !== -1) {
       gl.uniform2fv(this.unifPlanePos, pos);
+    }
+  }
+
+  setCloudDens(dens:number){
+    this.use();
+    if(this.unifCloudDens!==-1){
+      gl.uniform1f(this.unifCloudDens,dens);
     }
   }
 
