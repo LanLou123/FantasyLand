@@ -1,5 +1,7 @@
 # CIS 566 Homework 1: Noisy Terrain
 
+### *Name: Lan Lou   Pennkey: lanlou*
+
 ## [Demo]( https://lanlou123.github.io/hw01-noisy-terrain/)
 
 ![](img/nn.gif)
@@ -20,7 +22,7 @@
   - including grasslands forest and mud land , and also mapping of terrain color to it's altitude
 ![](img/bio.gif)
 
-- worley noise ocean (acheived by compositing multiple layers of worley noise in fbm style based on u_time,
+- **(extra)** worley noise ocean (acheived by compositing multiple layers of worley noise in fbm style based on u_time,
 each of which possess different velocity and direction)
 - remapping of terrain:
 
@@ -28,16 +30,16 @@ pow 0.2 | pow 1.0 |pow 3.0
 ----|---|-------
 ![](img/pow0.2.JPG) | ![](img/pow1.JPG) | ![](img/pow3.JPG)
 
-- alpha blending based on depth of terrain for ocean
+- **(extra)** alpha blending based on depth of terrain for ocean
   - you can notice water transparency changes with it's elevation
 ![](img/waterele.gif)
 
-- cloud using multiple octaves of worley noise, alpha blending based on thikness
+- **(extra)** cloud using multiple octaves of worley noise, alpha blending based on thikness
 ![](img/cloud.JPG)
-- sun using raycasting in camera space......
+- **(extra)** sun using raycasting in camera space......
 - terrain color layers based on terrain hight as well as slope angle
-- simple lambert shading for terrain
-- specularity and fresnel effect for ocean surface
+- **(extra)** simple lambert shading for terrain
+- **(extra)** specularity and fresnel effect for ocean surface
 
 ## GUI controls:
 
