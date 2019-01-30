@@ -2,6 +2,8 @@
 
 ## [Demo]( https://lanlou123.github.io/hw01-noisy-terrain/)
 
+![](img/nn.gif)
+
 ## Current features:
 - fbm combine worley noise terrain (two octaves of woley in the outter layer and 6 octaves of perlin noise together with one layer of large scale worley as mask in the outermost layer.
   - different noise comparision:
@@ -29,9 +31,24 @@ pow 0.2 | pow 1.0 |pow 3.0
 - alpha blending based on depth of terrain for ocean
   - you can notice water transparency changes with it's elevation
 ![](img/waterele.gif)
+
+- cloud using multiple octaves of worley noise, alpha blending based on thikness
+![](img/cloud.JPG)
+- sun using raycasting in camera space......
 - terrain color layers based on terrain hight as well as slope angle
 - simple lambert shading for terrain
 - specularity and fresnel effect for ocean surface
+
+## GUI controls:
+
+I only wrote a few controls which doesn't cover all features I've implemented
+from top to bottom, they are:
+
+- powval : the remapping degree of terrain based on pow function
+- sundirx,y,z : three direction component for sun directions
+- waterele : water elevation
+- clouddens : coverage of clouds
+
 
 ## some examples
 
