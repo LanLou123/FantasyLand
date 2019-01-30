@@ -53,6 +53,9 @@ from top to bottom, they are:
 - use W,A,S,D keys to move across the mountains and ocean
 - use RMB to rotate camera, LMB to translate camera, MMB to zoom in and out..
 
+## inspiration : grass land, clouds and mountains from anime feature film/Howl's Moving Castle *by* Miyazaki Hayao
+
+![](img/ins.jpg)
 
 ## some other examples
 
