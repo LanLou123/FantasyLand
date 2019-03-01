@@ -1,4 +1,4 @@
-# CIS 566 Homework 1: Noisy Terrain
+# Fantasy mountains
 
 ### *Name: Lan Lou   Pennkey: lanlou*
 
