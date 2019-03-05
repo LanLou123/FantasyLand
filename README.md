@@ -2,7 +2,7 @@
 
 ### *Name: Lan Lou   Pennkey: lanlou*
 
-## [Demo]( https://lanlou123.github.io/hw01-noisy-terrain/)
+## [Demo]( https://lanlou123.github.io/FantasyLand/)
 
 ![](img/nn.gif)
 
